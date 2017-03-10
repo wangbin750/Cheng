@@ -13,10 +13,10 @@ Initial_Data = pd.read_excel("chengww_ini.xlsx")/100
 History_Data = pd.read_excel("chengww.xlsx")/100
 Predict_Data = pd.read_excel("chengww_pre_12.xlsx")/100
 asset_list = ["000905.SH", "399975.SZ", "399967.SZ", "000993.SH", "000900.SZ",
-              "399006.SZ", "AU9999.SGE", "H11001.CSI"]
+              "399006.SZ", "AU9999.SGE", "IF.CFE"]
 hedge_list = ["000905.SH", "399975.SZ", "399967.SZ", "000993.SH", "000900.SZ", "399006.SZ"]
 bnds = [(0.0, None), (0.0, None), (0.0, None), (0.0, None),
-        (0.0, None), (0.0, None), (0.0, None), (0.0, None)]
+        (0.0, None), (0.0, None), (0.0, None), (0.0, None), (None, None)]
 #bnds = [(0.1, 0.6), (0.05, 0.2), (0.05, 0.2), (0.05, 0.2), (0.05, 0.2), (0.0, 0.3)]
 
 year_delta = 3
@@ -54,9 +54,10 @@ for each_date in Predict_Data.index[36:]:
     cov_mat = history_data[asset_list].cov() * 12.0
     # print cov_mat
     omega = np.matrix(cov_mat.values)
-    mkt_wgt = Risk_Parity_Weight(cov_mat)
+    #mkt_wgt = Risk_Parity_Weight(cov_mat)
+    mkt_wgt = Min_Variance_Weight(cov_mat)
     #print mkt_wgt
-
+    '''
     P = np.diag([1] * len(mkt_wgt))
 
     conf_list = list()
@@ -76,19 +77,20 @@ for each_date in Predict_Data.index[36:]:
     weight_bl = Max_Utility_Weight(com_ret, com_cov_mat, lam, bnds)
     '''
     weight_bl = mkt_wgt
-    '''
-    print sum(weight_bl*Initial_Data[asset_list].loc[next_date]) - Initial_Data["IF.CFE"][next_date]*sum(weight_bl[hedge_list])
-    pct_list.append(sum(weight_bl*Initial_Data[asset_list].loc[next_date]) - Initial_Data["IF.CFE"][next_date]*sum(weight_bl[hedge_list]))
+
+    print sum(weight_bl*Initial_Data[asset_list].loc[next_date])
+    pct_list.append(sum(weight_bl*Initial_Data[asset_list].loc[next_date])+1)
+    # - Initial_Data["IF.CFE"][next_date]*sum(weight_bl[hedge_list]))
     weight_list.append(list(weight_bl))
     date_list.append(next_date)
 
-return_series = pd.Series(np.array(pct_list), index=date_list)
-'''
-pd.DataFrame(np.array(weight_list), index=date_list, columns=asset_list).to_excel("chengww_rp_weight.xlsx")
+#return_series = pd.Series(np.array(pct_list), index=date_list)
+pd.Series(np.array(pct_list).cumprod(), index=date_list).to_csv("chengww_test_mv_nob.csv")
+pd.DataFrame(np.array(weight_list), index=date_list, columns=asset_list).to_excel("chengww_test_mv_nob.xlsx")
 
 print np.array(pct_list).cumprod()[-1]
-'''
 
+'''
 def Performance(return_series, rf_ret):
     end_value = (return_series + 1).prod()
     annual_return = (return_series + 1).prod() ** (1/(len(return_series)/12.0)) - 1
@@ -99,3 +101,4 @@ def Performance(return_series, rf_ret):
     return [end_value, annual_return, annual_variance, sharpe_ratio, max_drawdown]
 
 print Performance(return_series, 0.025)
+'''
