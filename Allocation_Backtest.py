@@ -9,9 +9,9 @@ from Allocation_Method import Risk_Parity_Weight, Min_Variance_Weight, Combined_
 import pandas as pd
 import numpy as np
 
-Initial_Data = pd.read_excel("D:\\chengww_ini.xlsx")/100
-History_Data = pd.read_excel("D:\\chengww.xlsx")/100
-Predict_Data = pd.read_excel("D:\\chengww_pre_12.xlsx")/100
+Initial_Data = pd.read_excel("chengww_ini.xlsx")/100
+History_Data = pd.read_excel("chengww.xlsx")/100
+Predict_Data = pd.read_excel("chengww_pre_12.xlsx")/100
 asset_list = ["000905.SH", "399975.SZ", "399967.SZ", "000993.SH", "000900.SZ",
               "399006.SZ", "AU9999.SGE", "H11001.CSI"]
 hedge_list = ["000905.SH", "399975.SZ", "399967.SZ", "000993.SH", "000900.SZ", "399006.SZ"]
@@ -56,7 +56,7 @@ for each_date in Predict_Data.index[36:]:
     omega = np.matrix(cov_mat.values)
     mkt_wgt = Risk_Parity_Weight(cov_mat)
     #print mkt_wgt
-    '''
+
     P = np.diag([1] * len(mkt_wgt))
 
     conf_list = list()
@@ -76,12 +76,26 @@ for each_date in Predict_Data.index[36:]:
     weight_bl = Max_Utility_Weight(com_ret, com_cov_mat, lam, bnds)
     '''
     weight_bl = mkt_wgt
+    '''
     print sum(weight_bl*Initial_Data[asset_list].loc[next_date]) - Initial_Data["IF.CFE"][next_date]*sum(weight_bl[hedge_list])
-    pct_list.append(sum(weight_bl*Initial_Data[asset_list].loc[next_date]) - Initial_Data["IF.CFE"][next_date]*sum(weight_bl[hedge_list])+1)
+    pct_list.append(sum(weight_bl*Initial_Data[asset_list].loc[next_date]) - Initial_Data["IF.CFE"][next_date]*sum(weight_bl[hedge_list]))
     weight_list.append(list(weight_bl))
     date_list.append(next_date)
 
-pd.Series(np.array(pct_list).cumprod(), index=date_list).to_csv("D:\\chengww_rp.csv")
-pd.DataFrame(np.array(weight_list), index=date_list, columns=asset_list).to_excel("D:\\chengww_rp_weight.xlsx")
+return_series = pd.Series(np.array(pct_list), index=date_list)
+'''
+pd.DataFrame(np.array(weight_list), index=date_list, columns=asset_list).to_excel("chengww_rp_weight.xlsx")
 
 print np.array(pct_list).cumprod()[-1]
+'''
+
+def Performance(return_series, rf_ret):
+    end_value = (return_series + 1).prod()
+    annual_return = (return_series + 1).prod() ** (1/(len(return_series)/12.0)) - 1
+    annual_variance = (return_series.var() * 12.0) ** 0.5
+    sharpe_ratio = (annual_return - rf_ret)/annual_variance
+    max_drawdown = max(((return_series + 1).cumprod().cummax()-(return_series + 1).cumprod())/(return_series + 1).cumprod().cummax())
+    (return_series + 1).cumprod().plot()
+    return [end_value, annual_return, annual_variance, sharpe_ratio, max_drawdown]
+
+print Performance(return_series, 0.025)
